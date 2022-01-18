@@ -38,7 +38,7 @@ class NeuralNetwork:
         for i, el in enumerate(y):
             y_vect[i, el] = 1
         if 1 not in y_vect:  # if 'y' isn't number in the range from 0 to 9
-            y_vect[10] = 1
+            y_vect[10] = None
         return y_vect
 
     def convert_y_to_vect_batch(self, y_batch):
@@ -50,7 +50,7 @@ class NeuralNetwork:
             y_vect_batch[i, yj] = 1
         for i in range(len(y_batch)):  # if 'y_batch[j]' isn't number in the range from 0 to 9
             if 1 not in y_vect_batch[i]:
-                y_vect_batch[i, 10] = 1
+                y_vect_batch[i, 10] = None
         return y_vect_batch
 
     @staticmethod
