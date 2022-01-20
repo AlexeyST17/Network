@@ -11,7 +11,7 @@ class NeuralNetwork:
         self.nnSize = len(nnStructure)
         self.nn_struct = nnStructure
         self.W, self.B = self.weights()
-        self.total_E = list()
+        self.E_train = list()
         self.E_valid = list()
         self.E_batch = list()
 
@@ -38,7 +38,7 @@ class NeuralNetwork:
         for i, el in enumerate(y):
             y_vect[i, el] = 1
         if 1 not in y_vect:  # if 'y' isn't number in the range from 0 to 9
-            y_vect[10] = None
+            y_vect[10] = 1
         return y_vect
 
     def convert_y_to_vect_batch(self, y_batch):
@@ -50,7 +50,7 @@ class NeuralNetwork:
             y_vect_batch[i, yj] = 1
         for i in range(len(y_batch)):  # if 'y_batch[j]' isn't number in the range from 0 to 9
             if 1 not in y_vect_batch[i]:
-                y_vect_batch[i, 10] = None
+                y_vect_batch[i, 10] = 1
         return y_vect_batch
 
     @staticmethod
@@ -163,7 +163,7 @@ class NeuralNetwork:
         for j in range(NUM_EPOCH):
             random.shuffle(dataset)
             print("EPOCH:%s>" % (j + 1), end="")
-            del self.E_batch[:]
+            self.E_batch.clear()
             for i in range(len(dataset) // BATCH_SIZE):
                 batch_x, batch_y, batch_y_vec = zip(*dataset[i * BATCH_SIZE: i * BATCH_SIZE + BATCH_SIZE])
                 batch_x = np.concatenate(batch_x, axis=0)
@@ -171,7 +171,6 @@ class NeuralNetwork:
                 batch_y_vec = self.convert_y_to_vect_batch(batch_y)
                 h, z, E = self.feed_forward_batch(batch_x, batch_y)
                 self.E_batch.append(E)
-                self.total_E.append(E)
                 grad = self.go_backward_batch(batch_y_vec, batch_x, h, z)
                 dE_dw1, dE_db1, dE_dw2, dE_db2 = grad
                 self.W[1] = self.W[1] - alpha * dE_dw1
@@ -183,6 +182,7 @@ class NeuralNetwork:
                 elif i == len(dataset) // BATCH_SIZE - 1:
                     print("> ", len(dataset) * (j + 1), "loss:%.4f" % (self.average_loss(self.E_batch)), end='')
                     self.validation(dataset_valid)
+                    self.E_train.append(self.average_loss(self.E_batch))
 
     def average_loss(self, loss):
         return np.sum(loss)/(len(loss))
@@ -203,7 +203,7 @@ class NeuralNetwork:
             v_w2 = gamma * prev_v_w2
             v_b2 = gamma * prev_v_b2
             random.shuffle(dataset)
-
+            self.E_batch.clear()
             print("EPOCH:%s>" % (j + 1), end="")
             for i in range(len(dataset) // BATCH_SIZE):
                 batch_x, batch_y, batch_y_vec = zip(*dataset[i * BATCH_SIZE: i * BATCH_SIZE + BATCH_SIZE])
@@ -212,7 +212,6 @@ class NeuralNetwork:
                 batch_y_vec = self.convert_y_to_vect_batch(batch_y)
                 h, z, E = self.feed_forward_batch(batch_x, batch_y)
                 self.E_batch.append(E)
-                self.total_E.append(E)
                 grad = self.go_backward_batch(batch_y_vec, batch_x, h, z)
                 dE_dw1, dE_db1, dE_dw2, dE_db2 = grad
                 dw2 = dE_dw2
@@ -234,6 +233,7 @@ class NeuralNetwork:
                 elif i == len(dataset) // BATCH_SIZE - 1:
                     print("> ", len(dataset) * (j + 1), "loss:%.4f" % (self.average_loss(self.E_batch)), end='')
                     self.validation(dataset_valid)
+                    self.E_train.append(self.average_loss(self.E_batch))
 
     def train_nn(self, X_train, Y_train, alpha=0.001, gamma=0.9, NUM_EPOCH=20, BATCH_SIZE=20, update_method="nesterov",
                  valid_size=0.2):
@@ -261,9 +261,20 @@ class NeuralNetwork:
 
     def show_loss_after_train(self):
         """This method shows dependence error per iteration after train"""
-        plt.plot(self.total_E)
+        plt.plot(self.E_train)
         plt.ylabel('E_train')
         plt.xlabel('Iter')
+        plt.show()
+
+    def show_loss(self):
+        """This method shows dependence error per iteration after train"""
+        fig, ax = plt.subplots()
+
+        ax.plot(self.E_train)
+        ax.plot(self.E_valid)
+        ax.legend(('E_train', 'E_valid'))
+        ax.set_xlabel('EPOCH')
+        ax.set_ylabel('LOSS')
         plt.show()
 
     def show_loss_validate(self):
@@ -277,16 +288,17 @@ class NeuralNetwork:
         """This method testing how network have learned"""
         counter = 0
         random.shuffle(dataset_valid)
-        del self.E_valid[:]
+        E_epoch_valid = list()
         for i in range(len(dataset_valid)):
             h_pr, z_pr, E_pr = self.feed_forward(dataset_valid[i][0], dataset_valid[i][1])
             index = h_pr[2].tolist()[0].index(np.max(h_pr[2].tolist()[0]))
-            self.E_valid.append(E_pr)
+            E_epoch_valid.append(E_pr)
             if index == dataset_valid[i][1]:
                 counter += 1
 
-        print(" - val_loss: %.4f" %(self.average_loss(self.E_valid)), end=" - ")
+        print(" - val_loss: %.4f" %(self.average_loss(E_epoch_valid)), end=" - ")
         print("val_accuracy:%.3f" % (counter/len(dataset_valid)*100) + "%")
+        self.E_valid.append(self.average_loss(E_epoch_valid))
 
     def test(self, X_test, Y_test):
         """This method testing how network have learned"""
