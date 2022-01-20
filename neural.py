@@ -269,7 +269,6 @@ class NeuralNetwork:
     def show_loss(self):
         """This method shows dependence error per iteration after train"""
         fig, ax = plt.subplots()
-
         ax.plot(self.E_train)
         ax.plot(self.E_valid)
         ax.legend(('E_train', 'E_valid'))
