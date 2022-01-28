@@ -2,7 +2,7 @@ from neural import NeuralNetwork as nn
 from mnist import MNIST
 
 
-mndata = MNIST('C:/Users/Lenovo/PycharmProjects/Network')
+mndata = MNIST('.')
 mndata.gz = True
 images_train, labels_train = mndata.load_training()
 images_test, labels_test = mndata.load_testing()
